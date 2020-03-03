@@ -1,0 +1,107 @@
+<html>
+	<head>
+		<meta charset="utf-8"/>
+		<link rel="stylesheet" type="text/css" href="style.css" />
+		<!--link rel="stylesheet" href="http://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css" /-->
+		<!--script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script-->
+		<script src="//ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/6.6.1/math.min.js"></script>
+        <!--script type="text/javascript" src="jquery-3.4.1.min.js"></script-->
+		<!--script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js"></script-->
+		<!--script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?sensor=false&amp;libraries=geometry"></script-->
+		<!--script type="text/javascript" src="config.js"></script-->
+		<script type="text/javascript" src="planeObject.js"></script>
+		<!--script type="text/javascript" src="options.js"></script-->
+		<!--script type="text/javascript" src="extension.js"></script-->
+		<!--script type="text/javascript" src="script.js"></script-->
+        <script type="text/javascript" src="getPlanes.js"></script>
+        <!--script type="text/javascript" src="augRel.js"></script-->
+        <title>DUMP1090</title>
+	</head>
+	<body onload="initialize()">
+        <p id="msg"></p>
+        <p id="viewport"></p>
+        <p id="debug"></p>
+        <canvas id="myCanvas" width="900" height="1600" style="border:1px solid #d3d3d3;">
+        </canvas>
+        <script>
+            var msg = "Msg: ";
+            var alpha, beta, gamma = 10;
+            var azimuth, elevation = 0;
+            var orient = [0, 0]; //[azimuth, elevation]
+            var viewport;
+            const viewport_size = [[-50, 50],[-50,50]]; //[[azimuth min/max], [elevation min/max]] 
+            const c = document.getElementById("myCanvas");
+            const marker_size = 25;
+            var ctx = c.getContext("2d");
+            ctx.font = "30px Arial";
+
+            function deviceOrientationListener(event) {
+                // Get device orientation
+                alpha = Math.round(event.alpha);
+                beta = Math.round(event.beta);
+                gamma = Math.round(event.gamma);
+
+            /*    Test orientation
+                  alpha = 290;
+                  beta = 100;
+            */
+                // Convert device orientation into workable frame of reference
+                azimuth = 360 - alpha;
+                elevation = beta - 90;
+                orient = [azimuth, elevation];
+                $("#msg").html("<br>a: "+orient[0]+"<br>b: "+orient[1]+"<br>g: "+gamma);
+
+                // Determine visible part of outside world
+                viewport = math.add(math.transpose([orient,orient]),viewport_size);
+                $("#viewport").html("<br>viewport: "+viewport);
+                
+                ctx.clearRect(0, 0, c.width, c.height);
+
+                // Draw all targets
+                var ac;
+                var ac_direction, ac_elevation = 0;
+                var ac_orient;
+                var left_coords, screen_coords, fracToPixels;
+                var debug = "";
+                //targets.forEach(function(target) {
+                for (var targetp in Planes){
+                    // Get target and relative position w.r.t. viewpoint
+                    ac = Planes[targetp];//target;
+                    ac_direction = ac.getRelativeDirectionInDegrees(home);
+                    ac_elevation = ac.getRelativeElevationInDegrees(home);
+                    ac_orient = [ac_direction, ac_elevation];
+
+                    //debug += ac.getFlight()+": "+math.format(ac_orient,4)+"<br>";
+
+                    // Convert world direction into screen coordinates
+                    left_coords = math.squeeze(math.transpose(math.multiply(viewport, [[1],[0]])));
+                    screen_coords = math.subtract(ac_orient, left_coords);
+                    screen_size = [c.width, c.height];
+                    fracToPixels = math.dotDivide(screen_size,math.multiply(viewport_size, [-1, 1]));
+                    screen_coords = math.dotMultiply(screen_coords, fracToPixels);
+
+                    // Draw marker at position
+                    ctx.beginPath();
+                    ctx.rect(screen_coords[0],screen_coords[1],marker_size, marker_size);
+                    ctx.stroke();
+
+                    ctx.fillText(ac.getFlight(),screen_coords[0],screen_coords[1]);
+                    ctx.fillText("d: "+math.format(ac.getRelativeHorizontalDistance(home),5),screen_coords[0],screen_coords[1]+30);
+                    ctx.fillText("h: "+math.format(ac.getHeight(),5),screen_coords[0],screen_coords[1]+60);
+                };
+                $("#debug").html(debug);
+            } 
+     
+            // Check for device orientation capabilities
+            if (window.DeviceOrientationEvent) {
+                window.addEventListener("deviceorientation", deviceOrientationListener);
+            } else {
+                msg += "Sorry, your browser doesn't support Device Orientation";
+            }
+            $("#msg").html(msg); 
+
+        </script>
+        <div id="planes_table"></div>
+	</body>
+</html>

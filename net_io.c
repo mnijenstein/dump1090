@@ -747,7 +747,8 @@ int handleHTTPRequest(struct client *c, char *p) {
     }
     
     if (strlen(url) < 2) {
-        snprintf(getFile, sizeof getFile, "%s/gmap.html", HTMLPATH); // Default file
+        //snprintf(getFile, sizeof getFile, "%s/gmap.html", HTMLPATH); // Default file
+        snprintf(getFile, sizeof getFile, "%s/aug_rel.html", HTMLPATH); // Default file
     } else {
         snprintf(getFile, sizeof getFile, "%s/%s", HTMLPATH, url);
     }

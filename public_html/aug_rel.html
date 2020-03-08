@@ -55,8 +55,20 @@
                 // Determine visible part of outside world
                 viewport = math.add(math.transpose([orient,orient]),viewport_size);
                 $("#viewport").html("<br>viewport: "+viewport);
+                //$("#viewport").html("<br>viewport: "+viewport[1][0]+" "+viewport[1][1]);
                 
                 ctx.clearRect(0, 0, c.width, c.height);
+
+                // Draw horizon (if visible)
+                var hor_frac = 0;
+                if (viewport[1][0] < 0 && viewport[1][1] > 0) {
+                    hor_frac = elevation / (viewport_size[1][1]-viewport_size[1][0]);
+                    hor_height = hor_frac * c.height + c.height/2;
+                    ctx.moveTo(0, hor_height);
+                    ctx.lineTo(c.width, hor_height);
+                    ctx.stroke();
+                    ctx.moveTo(0,0);
+                }
 
                 // Draw all targets
                 var ac;
@@ -80,15 +92,16 @@
                     screen_size = [c.width, c.height];
                     fracToPixels = math.dotDivide(screen_size,math.multiply(viewport_size, [-1, 1]));
                     screen_coords = math.dotMultiply(screen_coords, fracToPixels);
+                    screen_coords[1] = -screen_coords[1] + c.height;
 
                     // Draw marker at position
                     ctx.beginPath();
                     ctx.rect(screen_coords[0],screen_coords[1],marker_size, marker_size);
                     ctx.stroke();
 
-                    ctx.fillText(ac.getFlight(),screen_coords[0],screen_coords[1]);
-                    ctx.fillText("d: "+math.format(ac.getRelativeHorizontalDistance(home),5),screen_coords[0],screen_coords[1]+30);
-                    ctx.fillText("h: "+math.format(ac.getHeight(),5),screen_coords[0],screen_coords[1]+60);
+                    ctx.fillText(ac.getFlight(),screen_coords[0]+marker_size,screen_coords[1]);
+                    ctx.fillText("d: "+math.format(ac.getRelativeHorizontalDistance(home),2)/1000+" km",screen_coords[0]+marker_size,screen_coords[1]+30);
+                    ctx.fillText("h: "+math.format(ac.getHeight(),2)/1000+" km",screen_coords[0]+marker_size,screen_coords[1]+60);
                 };
                 $("#debug").html(debug);
             } 
